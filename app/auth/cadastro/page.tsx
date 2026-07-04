@@ -28,24 +28,29 @@ export default function CadastroPage() {
     setLoading(true);
     setError("");
 
-    const supabase = createClient();
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { name },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { name },
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
 
-    if (error) {
-      setError(error.message);
+      if (error) {
+        setError(error.message);
+        setLoading(false);
+        return;
+      }
+
+      router.push("/auth/confirm");
+      router.refresh();
+    } catch (err: any) {
+      setError(err?.message || "Erro de conexão com o servidor");
       setLoading(false);
-      return;
     }
-
-    router.push("/auth/confirm");
-    router.refresh();
   }
 
   return (
