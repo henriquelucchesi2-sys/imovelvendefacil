@@ -105,12 +105,21 @@ export function PropertyView({ property }: PropertyViewProps) {
     } catch {}
   }
 
+  function isMobile() {
+    return /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(
+      navigator.userAgent
+    );
+  }
+
   async function shareOnInstagram() {
     await navigator.clipboard.writeText(shareText);
-    toast.success("Informações copiadas!", {
+    if (isMobile()) {
+      window.open("instagram://", "_blank");
+    }
+    toast("Texto copiado!", {
       description:
         "Cole no Instagram (bio, stories ou posts) para divulgar o imóvel.",
-      duration: 5000,
+      duration: 6000,
     });
   }
 
@@ -121,18 +130,28 @@ export function PropertyView({ property }: PropertyViewProps) {
       "_blank",
       "width=600,height=600"
     );
-    toast.success("Informações copiadas!", {
+    toast("Texto copiado!", {
       description:
-        "Se o preview não carregar, cole o texto que copiamos no Facebook.",
-      duration: 4000,
+        "Cole o texto (Ctrl+V) no campo de texto do Facebook e publique. Já abrimos a página com a prévia do seu imóvel.",
+      duration: 8000,
     });
   }
 
   function shareOnWhatsApp() {
-    window.open(
-      `https://wa.me/?text=${encodeURIComponent(`${property.title} - ${formatPrice(property.price)}\n\n${shareUrl}`)}`,
-      "_blank"
-    );
+    const text = `${property.title} - ${formatPrice(property.price)}\n\n${shareUrl}`;
+    if (isMobile()) {
+      window.open(
+        `https://wa.me/?text=${encodeURIComponent(text)}`,
+        "_blank"
+      );
+    } else {
+      navigator.clipboard.writeText(`${text}\n\n${property.description || ""}`);
+      toast("Texto copiado!", {
+        description:
+          "Cole (Ctrl+V) no WhatsApp Web para enviar para um contato.",
+        duration: 6000,
+      });
+    }
   }
 
   function shareOnTwitter() {
