@@ -1,9 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Download, Loader2, Camera } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatPrice } from "@/lib/utils";
 import { WHATSAPP_NUMBER } from "@/lib/constants";
@@ -160,17 +158,17 @@ function wrapText(
 }
 
 export function PropertyImageCard({ property, children }: Props) {
-  const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [preview, setPreview] = useState<string | null>(null);
 
-  const generateImage = useCallback(async () => {
+  const handleClick = useCallback(async () => {
     setLoading(true);
-    setPreview(null);
     try {
       const dataUrl = await generate(property);
-      setPreview(dataUrl);
-      toast.success("Imagem gerada!");
+      const link = document.createElement("a");
+      link.download = `${property.slug || "imovel"}.png`;
+      link.href = dataUrl;
+      link.click();
+      toast.success("Imagem baixada! Agora é só postar no Instagram.");
     } catch (err) {
       toast.error("Erro ao gerar imagem", {
         description: "Tente novamente.",
@@ -180,73 +178,18 @@ export function PropertyImageCard({ property, children }: Props) {
     }
   }, [property]);
 
-  function downloadImage() {
-    if (!preview) return;
-    const link = document.createElement("a");
-    link.download = `${property.slug || "imovel"}.png`;
-    link.href = preview;
-    link.click();
-  }
-
   return (
-    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (v) setPreview(null); }}>
-      <div onClick={() => setOpen(true)}>{children}</div>
-      <DialogContent className="max-w-lg">
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 font-semibold text-lg">
-            <Camera className="h-5 w-5" />
-            Card para Instagram
+    <div onClick={() => { if (!loading) handleClick(); }}>
+      {loading ? (
+        <div className="flex flex-col items-center gap-1 group cursor-pointer">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 flex items-center justify-center">
+            <Loader2 className="h-6 w-6 text-white animate-spin" />
           </div>
-          <p className="text-sm text-muted-foreground">
-            Gere uma imagem do imóvel para postar no Instagram.
-          </p>
-
-          <div
-            className="relative w-full overflow-hidden rounded-lg bg-muted"
-            style={{ aspectRatio: "1/1", maxWidth: 400, margin: "0 auto" }}
-          >
-            {preview ? (
-              <img
-                src={preview}
-                alt="Card do imóvel"
-                className="w-full h-full object-contain"
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-                {loading ? "Gerando imagem..." : "Clique em 'Gerar imagem'"}
-              </div>
-            )}
-          </div>
-
-          <Button
-            type="button"
-            onClick={generateImage}
-            disabled={loading}
-            className="w-full"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Gerando...
-              </>
-            ) : (
-              "Gerar imagem"
-            )}
-          </Button>
-
-          {preview && (
-            <Button
-              type="button"
-              onClick={downloadImage}
-              variant="outline"
-              className="w-full gap-2"
-            >
-              <Download className="h-4 w-4" />
-              Baixar PNG
-            </Button>
-          )}
+          <span className="text-xs text-muted-foreground">Gerando...</span>
         </div>
-      </DialogContent>
-    </Dialog>
+      ) : (
+        children
+      )}
+    </div>
   );
 }
