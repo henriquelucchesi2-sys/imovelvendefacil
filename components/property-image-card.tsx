@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatPrice } from "@/lib/utils";
@@ -16,74 +16,25 @@ const W = 1080;
 const H = 1080;
 const PAD = 48;
 
-async function loadImage(url: string): Promise<HTMLImageElement> {
-  const response = await fetch(url, { mode: "cors" });
-  const blob = await response.blob();
-  const objectUrl = URL.createObjectURL(blob);
-  try {
-    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => resolve(img);
-      img.onerror = () => reject(new Error("Failed to load image"));
-      img.src = objectUrl;
-    });
-    return img;
-  } finally {
-    URL.revokeObjectURL(objectUrl);
-  }
-}
-
-async function generate(property: Property): Promise<string> {
+function generate(property: Property): string {
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
   const ctx = canvas.getContext("2d")!;
 
-  ctx.fillStyle = "#0f172a";
-  ctx.fillRect(0, 0, W, H);
-
-  const imageUrl = property.images?.[0];
-  const hasImage = imageUrl && imageUrl.length > 0;
-
-  if (hasImage) {
-    try {
-      const img = await loadImage(imageUrl);
-      const iw = W;
-      const ih = H * 0.55;
-      const sx = Math.max(0, (img.naturalWidth - img.naturalHeight * (iw / ih)) / 2);
-      ctx.drawImage(img, sx, 0, img.naturalWidth - sx * 2, img.naturalHeight, 0, 0, iw, ih);
-    } catch {
-      drawGradient(ctx);
-    }
-  } else {
-    drawGradient(ctx);
-  }
-
-  drawOverlay(ctx, property);
-  return canvas.toDataURL("image/png");
-}
-
-function drawGradient(ctx: CanvasRenderingContext2D) {
-  const grad = ctx.createLinearGradient(0, 0, 0, H * 0.55);
-  grad.addColorStop(0, "#334155");
-  grad.addColorStop(1, "#0f172a");
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, W, H * 0.55);
-
-  ctx.font = "bold 36px Arial, sans-serif";
-  ctx.fillStyle = "rgba(255,255,255,0.15)";
-  ctx.textAlign = "center";
-  ctx.fillText("ImovelVendeFacil", W / 2, H * 0.55 / 2);
-  ctx.textAlign = "start";
-}
-
-function drawOverlay(ctx: CanvasRenderingContext2D, property: Property) {
   const imageBottom = H * 0.55;
 
-  const grad = ctx.createLinearGradient(0, imageBottom - 120, 0, imageBottom);
-  grad.addColorStop(0, "rgba(15,23,42,0)");
-  grad.addColorStop(1, "rgba(15,23,42,1)");
-  ctx.fillStyle = grad;
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+  bgGrad.addColorStop(0, "#1e293b");
+  bgGrad.addColorStop(0.55, "#0f172a");
+  bgGrad.addColorStop(1, "#0f172a");
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, W, H);
+
+  const fadeGrad = ctx.createLinearGradient(0, imageBottom - 120, 0, imageBottom);
+  fadeGrad.addColorStop(0, "rgba(15,23,42,0)");
+  fadeGrad.addColorStop(1, "rgba(15,23,42,1)");
+  ctx.fillStyle = fadeGrad;
   ctx.fillRect(0, imageBottom - 120, W, 120);
 
   ctx.fillStyle = "#0f172a";
@@ -127,6 +78,8 @@ function drawOverlay(ctx: CanvasRenderingContext2D, property: Property) {
   ctx.textAlign = "right";
   ctx.fillText(wa, W - PAD, H - PAD);
   ctx.textAlign = "start";
+
+  return canvas.toDataURL("image/png");
 }
 
 function wrapText(
@@ -160,36 +113,39 @@ function wrapText(
 export function PropertyImageCard({ property, children }: Props) {
   const [loading, setLoading] = useState(false);
 
-  const handleClick = useCallback(async () => {
+  async function handleClick(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
     setLoading(true);
     try {
-      const dataUrl = await generate(property);
+      await new Promise((r) => setTimeout(r, 50));
+      const dataUrl = generate(property);
       const link = document.createElement("a");
       link.download = `${property.slug || "imovel"}.png`;
       link.href = dataUrl;
       link.click();
-      toast.success("Imagem baixada! Agora é só postar no Instagram.");
+      toast.success("Imagem baixada!");
     } catch (err) {
-      toast.error("Erro ao gerar imagem", {
-        description: "Tente novamente.",
-      });
+      toast.error("Erro ao gerar imagem. Tente novamente.");
     } finally {
       setLoading(false);
     }
-  }, [property]);
+  }
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center gap-1 group cursor-pointer">
+        <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 flex items-center justify-center">
+          <Loader2 className="h-6 w-6 text-white animate-spin" />
+        </div>
+        <span className="text-xs text-muted-foreground">Gerando...</span>
+      </div>
+    );
+  }
 
   return (
-    <div onClick={() => { if (!loading) handleClick(); }}>
-      {loading ? (
-        <div className="flex flex-col items-center gap-1 group cursor-pointer">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 flex items-center justify-center">
-            <Loader2 className="h-6 w-6 text-white animate-spin" />
-          </div>
-          <span className="text-xs text-muted-foreground">Gerando...</span>
-        </div>
-      ) : (
-        children
-      )}
+    <div onClick={handleClick} className="cursor-pointer">
+      {children}
     </div>
   );
 }
