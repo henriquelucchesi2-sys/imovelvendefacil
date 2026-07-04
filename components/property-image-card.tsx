@@ -18,18 +18,45 @@ const W = 1080;
 const H = 1080;
 const PAD = 48;
 
+async function loadImage(url: string): Promise<HTMLImageElement> {
+  const response = await fetch(url, { mode: "cors" });
+  const blob = await response.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error("Failed to load image"));
+      img.src = objectUrl;
+    });
+    return img;
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
 async function generate(property: Property): Promise<string> {
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
   const ctx = canvas.getContext("2d")!;
-  const imageUrl = property.images?.[0];
 
   ctx.fillStyle = "#0f172a";
   ctx.fillRect(0, 0, W, H);
 
-  if (imageUrl) {
-    await drawImage(ctx, imageUrl);
+  const imageUrl = property.images?.[0];
+  const hasImage = imageUrl && imageUrl.length > 0;
+
+  if (hasImage) {
+    try {
+      const img = await loadImage(imageUrl);
+      const iw = W;
+      const ih = H * 0.55;
+      const sx = Math.max(0, (img.naturalWidth - img.naturalHeight * (iw / ih)) / 2);
+      ctx.drawImage(img, sx, 0, img.naturalWidth - sx * 2, img.naturalHeight, 0, 0, iw, ih);
+    } catch {
+      drawGradient(ctx);
+    }
   } else {
     drawGradient(ctx);
   }
@@ -38,31 +65,18 @@ async function generate(property: Property): Promise<string> {
   return canvas.toDataURL("image/png");
 }
 
-function drawImage(ctx: CanvasRenderingContext2D, url: string): Promise<void> {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => {
-      const iw = W;
-      const ih = H * 0.55;
-      const sx = Math.max(0, (img.naturalWidth - img.naturalHeight * (iw / ih)) / 2);
-      ctx.drawImage(img, sx, 0, img.naturalWidth - sx * 2, img.naturalHeight, 0, 0, iw, ih);
-      resolve();
-    };
-    img.onerror = () => {
-      drawGradient(ctx);
-      resolve();
-    };
-    img.src = url;
-  });
-}
-
 function drawGradient(ctx: CanvasRenderingContext2D) {
   const grad = ctx.createLinearGradient(0, 0, 0, H * 0.55);
-  grad.addColorStop(0, "#1e293b");
+  grad.addColorStop(0, "#334155");
   grad.addColorStop(1, "#0f172a");
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, W, H * 0.55);
+
+  ctx.font = "bold 36px Arial, sans-serif";
+  ctx.fillStyle = "rgba(255,255,255,0.15)";
+  ctx.textAlign = "center";
+  ctx.fillText("ImovelVendeFacil", W / 2, H * 0.55 / 2);
+  ctx.textAlign = "start";
 }
 
 function drawOverlay(ctx: CanvasRenderingContext2D, property: Property) {
@@ -114,6 +128,7 @@ function drawOverlay(ctx: CanvasRenderingContext2D, property: Property) {
   const wa = `WhatsApp: (${WHATSAPP_NUMBER.slice(2, 4)}) ${WHATSAPP_NUMBER.slice(4, 9)}-${WHATSAPP_NUMBER.slice(9)}`;
   ctx.textAlign = "right";
   ctx.fillText(wa, W - PAD, H - PAD);
+  ctx.textAlign = "start";
 }
 
 function wrapText(
@@ -155,8 +170,8 @@ export function PropertyImageCard({ property, children }: Props) {
     try {
       const dataUrl = await generate(property);
       setPreview(dataUrl);
+      toast.success("Imagem gerada!");
     } catch (err) {
-      console.error(err);
       toast.error("Erro ao gerar imagem", {
         description: "Tente novamente.",
       });
@@ -198,12 +213,13 @@ export function PropertyImageCard({ property, children }: Props) {
               />
             ) : (
               <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-                {loading ? "Gerando..." : "Clique em 'Gerar imagem'"}
+                {loading ? "Gerando imagem..." : "Clique em 'Gerar imagem'"}
               </div>
             )}
           </div>
 
           <Button
+            type="button"
             onClick={generateImage}
             disabled={loading}
             className="w-full"
@@ -219,7 +235,12 @@ export function PropertyImageCard({ property, children }: Props) {
           </Button>
 
           {preview && (
-            <Button onClick={downloadImage} variant="outline" className="w-full gap-2">
+            <Button
+              type="button"
+              onClick={downloadImage}
+              variant="outline"
+              className="w-full gap-2"
+            >
               <Download className="h-4 w-4" />
               Baixar PNG
             </Button>
