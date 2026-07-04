@@ -94,6 +94,8 @@ export function PropertyView({ property }: PropertyViewProps) {
   const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${whatsappMessage}`;
   const shareUrl = typeof window !== "undefined" ? window.location.href : "";
 
+  const shareText = `${property.title} - ${formatPrice(property.price)}\n\n${property.description || ""}\n\n${shareUrl}`;
+
   async function copyLink() {
     try {
       await navigator.clipboard.writeText(shareUrl);
@@ -104,8 +106,8 @@ export function PropertyView({ property }: PropertyViewProps) {
   }
 
   async function shareOnInstagram() {
-    await navigator.clipboard.writeText(shareUrl);
-    toast.success("Link copiado!", {
+    await navigator.clipboard.writeText(shareText);
+    toast.success("Informações copiadas!", {
       description:
         "Cole no Instagram (bio, stories ou posts) para divulgar o imóvel.",
       duration: 5000,
@@ -113,26 +115,38 @@ export function PropertyView({ property }: PropertyViewProps) {
   }
 
   function shareOnFacebook() {
+    navigator.clipboard.writeText(shareText);
     window.open(
       `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`,
       "_blank",
       "width=600,height=600"
     );
+    toast.success("Informações copiadas!", {
+      description:
+        "Se o preview não carregar, cole o texto que copiamos no Facebook.",
+      duration: 4000,
+    });
   }
 
   function shareOnWhatsApp() {
     window.open(
-      `https://wa.me/?text=${encodeURIComponent(`${property.title} - ${shareUrl}`)}`,
+      `https://wa.me/?text=${encodeURIComponent(`${property.title} - ${formatPrice(property.price)}\n\n${shareUrl}`)}`,
       "_blank"
     );
   }
 
   function shareOnTwitter() {
+    navigator.clipboard.writeText(shareText);
     window.open(
       `https://twitter.com/intent/tweet?text=${encodeURIComponent(property.title)}&url=${encodeURIComponent(shareUrl)}`,
       "_blank",
       "width=600,height=500"
     );
+    toast.success("Informações copiadas!", {
+      description:
+        "Se o preview não carregar, cole o texto que copiamos no Twitter.",
+      duration: 4000,
+    });
   }
 
   async function shareNative() {
@@ -140,7 +154,7 @@ export function PropertyView({ property }: PropertyViewProps) {
       try {
         await navigator.share({
           title: property.title,
-          text: property.description || property.title,
+          text: `${property.title} - ${formatPrice(property.price)}`,
           url: shareUrl,
         });
       } catch {}
