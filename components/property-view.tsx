@@ -111,22 +111,41 @@ export function PropertyView({ property }: PropertyViewProps) {
     );
   }
 
-  function shareOnInstagram() {
+  async function shareOnInstagram() {
     const canvas = document.createElement("canvas");
     canvas.width = 1080;
     canvas.height = 1080;
     const ctx = canvas.getContext("2d")!;
 
-    ctx.fillStyle = "#0f172a";
-    ctx.fillRect(0, 0, 1080, 1080);
+    let imageLoaded = false;
+    if (property.images?.[0]) {
+      try {
+        const proxyUrl = `/api/image-proxy?url=${encodeURIComponent(property.images[0])}`;
+        const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = reject;
+          img.src = proxyUrl;
+        });
+        ctx.drawImage(img, 0, 0, 1080, 1080);
+        imageLoaded = true;
+      } catch {}
+    }
 
-    ctx.font = "bold 48px Arial, sans-serif";
-    ctx.fillStyle = "rgba(255,255,255,0.2)";
-    ctx.textAlign = "center";
-    ctx.fillText("ImovelVendeFacil", 540, 300);
-    ctx.textAlign = "start";
+    if (!imageLoaded) {
+      ctx.fillStyle = "#0f172a";
+      ctx.fillRect(0, 0, 1080, 1080);
+    }
 
-    const y0 = 540;
+    if (imageLoaded) {
+      const gradient = ctx.createLinearGradient(0, 540, 0, 1080);
+      gradient.addColorStop(0, "rgba(0,0,0,0)");
+      gradient.addColorStop(1, "rgba(0,0,0,0.85)");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, 1080, 1080);
+    }
+
+    const y0 = imageLoaded ? 620 : 540;
     ctx.font = "bold 64px Arial, sans-serif";
     ctx.fillStyle = "#ffffff";
     const title = property.title.substring(0, 40);
@@ -138,7 +157,7 @@ export function PropertyView({ property }: PropertyViewProps) {
 
     const wa = `WhatsApp: (${WHATSAPP_NUMBER.slice(2, 4)}) ${WHATSAPP_NUMBER.slice(4, 9)}-${WHATSAPP_NUMBER.slice(9)}`;
     ctx.font = "24px Arial, sans-serif";
-    ctx.fillStyle = "rgba(255,255,255,0.4)";
+    ctx.fillStyle = imageLoaded ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.4)";
     ctx.fillText("ImovelVendeFacil", 48, 1020);
     ctx.textAlign = "right";
     ctx.fillText(wa, 1032, 1020);
