@@ -5,6 +5,7 @@ import html2canvas from "html2canvas";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Download, Loader2, Camera } from "lucide-react";
+import { toast } from "sonner";
 import { formatPrice } from "@/lib/utils";
 import { WHATSAPP_NUMBER } from "@/lib/constants";
 import type { Property } from "@/lib/types";
@@ -24,18 +25,34 @@ export function PropertyImageCard({ property, children }: Props) {
     if (!cardRef.current) return;
     setLoading(true);
     try {
+      await document.fonts.ready;
+      const images = cardRef.current.querySelectorAll("img");
+      await Promise.all(
+        Array.from(images).map(
+          (img) =>
+            new Promise<void>((resolve) => {
+              if (img.complete) resolve();
+              else {
+                img.onload = () => resolve();
+                img.onerror = () => resolve();
+              }
+            })
+        )
+      );
       const canvas = await html2canvas(cardRef.current, {
-        width: 1080,
-        height: 1080,
-        scale: 1,
+        scale: 3,
         useCORS: true,
         allowTaint: false,
         backgroundColor: "#ffffff",
+        logging: false,
       });
       const dataUrl = canvas.toDataURL("image/png");
       setPreview(dataUrl);
     } catch (err) {
       console.error(err);
+      toast.error("Erro ao gerar imagem", {
+        description: "Tente novamente ou use outro navegador.",
+      });
     } finally {
       setLoading(false);
     }
