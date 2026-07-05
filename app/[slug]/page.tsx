@@ -60,5 +60,6 @@ export default async function PropertyPage({ params }: Props) {
     .update({ views: (property.views || 0) + 1 })
     .eq("id", property.id);
 
-  return <PropertyView property={property} />;
+  const { user_id, ...publicProperty } = property;
+  return <PropertyView property={publicProperty as typeof property} />;
 }

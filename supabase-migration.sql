@@ -91,3 +91,48 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- ============================================
+-- Storage policies for the 'imoveis' bucket
+-- ============================================
+
+-- Ensure the bucket exists (if not created via dashboard)
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('imoveis', 'imoveis', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Enable RLS on storage.objects (already default, but explicit)
+ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+
+-- Anyone can read files (needed for public pages and social media OG images)
+DROP POLICY IF EXISTS "Public read access" ON storage.objects;
+CREATE POLICY "Public read access"
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'imoveis');
+
+-- Only authenticated users can upload files
+DROP POLICY IF EXISTS "Authenticated users can upload" ON storage.objects;
+CREATE POLICY "Authenticated users can upload"
+  ON storage.objects FOR INSERT
+  WITH CHECK (
+    bucket_id = 'imoveis'
+    AND auth.role() = 'authenticated'
+  );
+
+-- Users can update their own files
+DROP POLICY IF EXISTS "Users can update own files" ON storage.objects;
+CREATE POLICY "Users can update own files"
+  ON storage.objects FOR UPDATE
+  USING (
+    bucket_id = 'imoveis'
+    AND auth.uid() = owner
+  );
+
+-- Users can delete their own files
+DROP POLICY IF EXISTS "Users can delete own files" ON storage.objects;
+CREATE POLICY "Users can delete own files"
+  ON storage.objects FOR DELETE
+  USING (
+    bucket_id = 'imoveis'
+    AND auth.uid() = owner
+  );
