@@ -108,9 +108,6 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('imoveis', 'imoveis', true)
 ON CONFLICT (id) DO NOTHING;
 
--- Enable RLS on storage.objects (already default, but explicit)
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
-
 -- Anyone can read files (needed for public pages and social media OG images)
 DROP POLICY IF EXISTS "Public read access" ON storage.objects;
 CREATE POLICY "Public read access"
