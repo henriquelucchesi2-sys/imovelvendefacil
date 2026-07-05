@@ -45,19 +45,23 @@ ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE properties ENABLE ROW LEVEL SECURITY;
 
 -- Profiles policies
+DROP POLICY IF EXISTS "Users can view own profile" ON profiles;
 CREATE POLICY "Users can view own profile"
   ON profiles FOR SELECT
   USING (auth.uid() = id);
 
+DROP POLICY IF EXISTS "Users can insert own profile" ON profiles;
 CREATE POLICY "Users can insert own profile"
   ON profiles FOR INSERT
   WITH CHECK (auth.uid() = id);
 
+DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
 CREATE POLICY "Users can update own profile"
   ON profiles FOR UPDATE
   USING (auth.uid() = id);
 
 -- Properties policies
+DROP POLICY IF EXISTS "Anyone can view active properties" ON properties;
 CREATE POLICY "Anyone can view active properties"
   ON properties FOR SELECT
   USING (
@@ -65,14 +69,17 @@ CREATE POLICY "Anyone can view active properties"
     OR auth.uid() = user_id
   );
 
+DROP POLICY IF EXISTS "Users can insert own properties" ON properties;
 CREATE POLICY "Users can insert own properties"
   ON properties FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update own properties" ON properties;
 CREATE POLICY "Users can update own properties"
   ON properties FOR UPDATE
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can delete own properties" ON properties;
 CREATE POLICY "Users can delete own properties"
   ON properties FOR DELETE
   USING (auth.uid() = user_id);
