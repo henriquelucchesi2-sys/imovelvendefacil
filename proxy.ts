@@ -2,17 +2,6 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function proxy(request: NextRequest) {
-  const path = request.nextUrl.pathname;
-
-  const needsAuth =
-    path.startsWith("/dashboard") ||
-    path.startsWith("/auth/login") ||
-    path.startsWith("/auth/cadastro");
-
-  if (!needsAuth) {
-    return NextResponse.next({ request });
-  }
-
   let supabaseResponse = NextResponse.next({ request });
 
   try {
@@ -40,6 +29,8 @@ export async function proxy(request: NextRequest) {
     const {
       data: { user },
     } = await supabase.auth.getUser();
+
+    const path = request.nextUrl.pathname;
 
     if (path.startsWith("/dashboard") && !user) {
       const url = request.nextUrl.clone();
